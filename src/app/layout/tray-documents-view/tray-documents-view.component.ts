@@ -12,7 +12,7 @@ import { SolicitudesStateService, SolicitudDemo } from '../../core/state/solicit
 import { SolicitudesFacadeService } from '../../core/state/solicitudes-facade.service';
 import { PermissionService } from '../../core/auth/permission.service';
 import { TooltipDirective } from '../../shared/ui/tooltip/tooltip.directive';
-import { ESTADO, ESTADOS_RESPUESTA_APROBADOR } from '../../core/models/documento.model';
+import { ESTADO } from '../../core/models/documento.model';
 
 type TrayDocumentRow = {
   document: string;
@@ -25,8 +25,8 @@ type TrayDocumentRow = {
   entity: string;
 };
 
-type TrayDocumentStatus = 'Elaborado' | 'Verificado' | 'Eliminado' | 'Aprobado' | 'Observado' | 'Rechazado';
-type TrayTitle = 'Recibidos' | 'Enviados' | 'Borradores' | 'Papelera' | string;
+type TrayDocumentStatus = 'Elaborado' | 'Verificado' | 'Eliminado' | 'Aprobado' | 'Aceptado' | 'Observado' | 'Rechazado';
+type TrayTitle = 'Enviados' | 'Papelera' | string;
 
 type AppliedCustomFilter = {
   id: string;
@@ -238,7 +238,7 @@ export class TrayDocumentsViewComponent implements OnInit, OnChanges {
   private readonly solicitudesFacade = inject(SolicitudesFacadeService);
   private readonly permissionService = inject(PermissionService);
 
-  @Input() title = 'Borradores';
+  @Input() title = 'Enviados';
 
   customFilterOpen = false;
   selectedStatusFilter = '';
@@ -304,14 +304,11 @@ export class TrayDocumentsViewComponent implements OnInit, OnChanges {
   /** Estados visibles por sección y rol — define qué muestra cada bandeja. */
   private readonly SECTION_STATES: Record<string, Record<string, TrayDocumentStatus[]>> = {
     creator: {
-      Recibidos:  ESTADOS_RESPUESTA_APROBADOR,
-      Enviados:   [ESTADO.VERIFICADO],
-      Borradores: [ESTADO.ELABORADO],
+      Enviados:   ['Aceptado'],
       Papelera:   [ESTADO.ELIMINADO],
     },
     approver: {
-      Recibidos: [ESTADO.VERIFICADO],
-      Enviados:  ESTADOS_RESPUESTA_APROBADOR,
+      Enviados:  ['Aceptado'],
     },
   };
 
@@ -321,7 +318,7 @@ export class TrayDocumentsViewComponent implements OnInit, OnChanges {
     return this.SECTION_STATES[roleKey][this.title] ?? [];
   }
 
-  readonly actionTypeFilterOptions = ['Creacion'];
+  readonly actionTypeFilterOptions = ['Creación'];
 
   /** Pendientes primero: Observado/Rechazado arriba en Recibidos del creador; Verificado arriba para el aprobador. */
   private readonly STATUS_PRIORITY_BY_ROLE: Record<string, Record<string, number>> = {
@@ -330,6 +327,16 @@ export class TrayDocumentsViewComponent implements OnInit, OnChanges {
   };
 
   readonly rows: TrayDocumentRow[] = [];
+  readonly documentoEnviado: TrayDocumentRow = {
+    document: 'Documento autogenerado',
+    number: '003',
+    actionType: 'Creación',
+    status: 'Aceptado',
+    system: 'Sistema Nacional de Presupuesto',
+    date: '24/8/2026',
+    institutionalScope: '-',
+    entity: 'MEF Ministerio de Economía y Finanzas',
+  };
 
   get filteredRows(): TrayDocumentRow[] {
     const filtered = this.rowsForCurrentTray.filter((row) => {
@@ -384,6 +391,8 @@ export class TrayDocumentsViewComponent implements OnInit, OnChanges {
   }
 
   get rowsForCurrentTray(): TrayDocumentRow[] {
+    if (this.title === 'Enviados') return [this.documentoEnviado];
+
     const role = this.permissionService.currentRole();
     const roleKey = role === 'approver' ? 'approver' : 'creator';
     const solicitudes = role === 'approver'

@@ -30,6 +30,8 @@ export interface ProcessMenuNode {
   comingSoon?: boolean;
   /** Rótulo editorial que agrupa las hojas siguientes dentro de una rama. */
   groupLabel?: string;
+  /** Conserva nodos para rutas y migas, pero evita que esta opción los despliegue en el menú. */
+  showChildren?: boolean;
   children?: ProcessMenuNode[];
 }
 
@@ -46,6 +48,7 @@ export const DEFAULT_PROCESS_TREE: ProcessMenuNode[] = [
   {
     id: 'procesos-presupuesto',
     label: 'Procesos presupuesto',
+    showChildren: false,
     children: [
       {
         id: 'programacion-presupuestaria',
@@ -83,7 +86,6 @@ export const DEFAULT_PROCESS_TREE: ProcessMenuNode[] = [
   {
     id: 'clasificadores-catalogos',
     label: 'Clasificadores y catálogos',
-    expanded: true,
     children: [
       {
         id: 'clasificadores',
@@ -93,7 +95,6 @@ export const DEFAULT_PROCESS_TREE: ProcessMenuNode[] = [
       {
         id: 'catalogos',
         label: 'Catálogos',
-        expanded: true,
         children: [
           {
             id: 'catalogo-reportes-apm',
@@ -102,9 +103,16 @@ export const DEFAULT_PROCESS_TREE: ProcessMenuNode[] = [
             comingSoon: true,
           },
           { id: 'catalogo-impresion-apm', label: 'Catálogo de impresión de la APM', comingSoon: true },
-          { id: 'catalogo-versiones', label: 'Catálogo de Versiones', moduleRoute: '/procesos/catalogo-versiones' },
+          { id: 'catalogo-versiones', label: 'Catálogo de versiones', moduleRoute: '/procesos/catalogo-versiones' },
         ],
       },
+    ],
+  },
+  {
+    id: 'consultas-reportes',
+    label: 'Consultas y reportes',
+    children: [
+      { id: 'consultas-reportes-presupuesto', label: 'Consultas y reportes presupuestales', comingSoon: true },
     ],
   },
 ];

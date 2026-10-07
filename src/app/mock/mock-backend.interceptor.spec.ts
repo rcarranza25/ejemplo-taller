@@ -121,7 +121,7 @@ describe('mockBackendInterceptor', () => {
     expect(detalle.valor?.historialEstados?.map((h) => h.estadoNuevo)).toEqual(['NUEVO', 'ELABORADO', 'VERIFICADO', 'APROBADO']);
 
     const avisosAna = esperar(http.get<{ titulo: string; documento: { id: string } }[]>(`${API}/notificaciones`, { headers: ana }));
-    expect(avisosAna.valor?.some((n) => n.documento.id === id && n.titulo === 'Solicitud aprobada')).toBeTrue();
+    expect(avisosAna.valor?.some((n) => n.documento.id === id && n.titulo === 'Documento autogenerado aceptado')).toBeTrue();
   }));
 
   it('observar pide comentario y una solicitud observada ya no se puede eliminar', fakeAsync(() => {

@@ -156,9 +156,7 @@ const CONFIGURACION_APERTURA_DE_MUESTRA = [
 
 /** Sin `documento`: al hacer clic el componente no navega y el catálogo no se abandona. */
 export const NOTIFICACIONES_DE_MUESTRA: NotificacionResponse[] = [
-  { id: 'n1', tipo: 'APROBACION', titulo: 'Solicitud aprobada', mensaje: 'PCC-SCC-00001-2026-MEF-DGCP fue aprobada.', leida: false, leidaEn: null, createdAt: hace(0.3), documento: null },
-  { id: 'n2', tipo: 'OBSERVACION', titulo: 'Solicitud observada', mensaje: 'PAA-SRAA-00012-2026-MEF-DGCP tiene observaciones.', leida: false, leidaEn: null, createdAt: hace(5), documento: null },
-  { id: 'n3', tipo: 'VERIFICACION', titulo: 'Documento por aprobar', mensaje: 'Llegó una solicitud de catálogo de eventos.', leida: true, leidaEn: hace(20), createdAt: hace(30), documento: null },
+  { id: 'n1', tipo: 'CATALOGO_VERSIONES_ACEPTADO', titulo: 'Documento autogenerado aceptado', mensaje: 'El documento autogenerado fue aceptado.', leida: false, leidaEn: null, createdAt: hace(0.3), documento: { id: 'documento-autogenerado-dgpp-0012', numero: 'Documento-autogenerado-DGPP-0012-MEF', catDocumento: { id: 'td-catalogo-versiones', codigo: 'DGPP', nombre: 'Documento autogenerado' } } },
 ];
 
 // ── Bandeja ──────────────────────────────────────────────────────────

@@ -124,10 +124,10 @@ export { DEFAULT_PROCESS_TREE, findProcessPathById } from '../../shared/utils/pr
               [class.py-siaf-sm]="level === 0"
               [class.py-siaf-xs]="level === 1"
               [class.py-siaf-xxs]="level > 1"
-              [attr.aria-expanded]="hasChildren(node) ? isExpanded(node) : null"
+              [attr.aria-expanded]="canExpand(node) ? isExpanded(node) : null"
               (click)="activate(node)"
             >
-              @if (hasChildren(node)) {
+              @if (canExpand(node)) {
                 <siaf-icon
                   class="mr-siaf-md shrink-0 text-[var(--sys-color-text-neutral-activated)] transition-transform duration-150"
                   name="arrow_drop_down"
@@ -147,7 +147,7 @@ export { DEFAULT_PROCESS_TREE, findProcessPathById } from '../../shared/utils/pr
               </span>
             </button>
 
-            @if (hasChildren(node) && isExpanded(node)) {
+            @if (canExpand(node) && isExpanded(node)) {
               <ng-container *ngTemplateOutlet="treeTemplate; context: { $implicit: node.children || [], level: level + 1 }" />
             }
           </div>
@@ -197,7 +197,7 @@ export class ProcessMenuTreeComponent implements OnChanges, OnInit {
     // tienen hijos. No se selecciona ni se emite navegacion para evitar
     // que el shell intente abrir una ruta inexistente.
     if (node.comingSoon) {
-      if (this.hasChildren(node)) {
+      if (this.canExpand(node)) {
         this.toggle(node);
       }
       return;
@@ -206,15 +206,15 @@ export class ProcessMenuTreeComponent implements OnChanges, OnInit {
     this.selectedId = node.id;
     this.updateActivePath(node.id);
 
-    if (this.hasChildren(node)) {
+    if (this.canExpand(node)) {
       this.toggle(node);
     }
 
     this.nodeSelected.emit(node);
   }
 
-  hasChildren(node: ProcessMenuNode): boolean {
-    return Boolean(node.children?.length);
+  canExpand(node: ProcessMenuNode): boolean {
+    return node.showChildren !== false && Boolean(node.children?.length);
   }
 
   isExpanded(node: ProcessMenuNode): boolean {

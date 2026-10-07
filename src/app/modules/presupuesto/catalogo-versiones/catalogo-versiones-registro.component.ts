@@ -40,7 +40,7 @@ type VersionVinculadaDemo = { id: string; anio: string; proceso: string; codigo:
           <div class="mt-siaf-lg grid gap-siaf-lg">
             <section class="grid gap-siaf-md">
               <h3 class="m-0 text-sm font-bold uppercase text-text">Datos de versión</h3>
-              <div class="max-w-[294px]"><siaf-input label="Año" [required]="true" value="2026" [disabled]="true" /></div>
+              <div class="max-w-[294px]"><siaf-input label="Año fiscal" [required]="true" value="2026" /></div>
               @if (procesoSeleccionado()) {
                 <section class="grid gap-siaf-md">
                   <div class="flex min-h-10 items-center justify-between gap-siaf-md">
@@ -78,7 +78,7 @@ type VersionVinculadaDemo = { id: string; anio: string; proceso: string; codigo:
                 <siaf-checkbox label="Editable" [checked]="editable()" (checkedChange)="editable.set($event)" />
                 <siaf-checkbox label="Pliego" [checked]="pliego()" (checkedChange)="pliego.set($event)" />
                 <siaf-checkbox label="Vigente" [checked]="vigente()" (checkedChange)="vigente.set($event)" />
-                <siaf-checkbox label="Es oficial" [checked]="oficial()" (checkedChange)="oficial.set($event)" />
+                <siaf-checkbox label="Es definitivo" [checked]="oficial()" (checkedChange)="oficial.set($event)" />
                 <siaf-checkbox label="Disponible" [checked]="disponible()" (checkedChange)="disponible.set($event)" />
               </div>
             </section>
@@ -102,7 +102,7 @@ type VersionVinculadaDemo = { id: string; anio: string; proceso: string; codigo:
             <section class="grid gap-siaf-md">
               <h3 class="m-0 text-sm font-bold uppercase text-text">Vigencia de versión</h3>
               <div class="grid items-start gap-siaf-lg md:grid-cols-3">
-                <siaf-radio-group label="Estado" name="estado-version" [inline]="true" [options]="estados" [value]="estado()" (valueChange)="estado.set($event)" />
+                <siaf-radio-group label="Estado" name="estado-version" [inline]="true" [disabled]="!esEdicionVersionDos" [options]="estados" [value]="estado()" (valueChange)="estado.set($event)" />
                 <siaf-date-time-picker label="Fecha desde" [fullWidth]="true" [value]="fechaDesde()" (valueChange)="fechaDesde.set($event)" />
                 <siaf-date-time-picker label="Fecha hasta" [fullWidth]="true" [defaultToToday]="false" [disabled]="true" [hint]="estado() === 'inactivo' ? 'Será asignada cuando se grabe el registro.' : ''" />
               </div>
@@ -180,6 +180,7 @@ export class CatalogoVersionesRegistroComponent {
   readonly versionCincoActualizada = Boolean(history.state?.['versionCincoActualizada']);
   readonly versionCincoOficial = Boolean(history.state?.['versionCincoOficial']);
   readonly versionCincoDisponible = Boolean(history.state?.['versionCincoDisponible']);
+  readonly versionSeisDisponible = Boolean(history.state?.['versionSeisDisponible']);
   readonly nuevoProcesoExistente = Boolean(history.state?.['nuevoProcesoExistente']);
 
   readonly breadcrumbs = [{ label: 'Inicio', href: '/panel' }, { label: 'Procesos presupuesto' }, { label: 'Clasificadores y catálogos' }, { label: 'Catálogo de Versiones', href: '/procesos/catalogo-versiones' }, { label: 'Registro de versiones' }];
@@ -230,7 +231,7 @@ export class CatalogoVersionesRegistroComponent {
   readonly editable = signal(this.esEdicionVersionDos ? false : true); readonly pliego = signal(false); readonly vigente = signal(this.esEdicionVersionDos ? false : true);
   readonly oficial = signal(this.esEdicion && !this.esEdicionVersionDos ? this.versionCincoOficial : false);
   readonly disponible = signal(this.esEdicion && !this.esEdicionVersionDos ? this.versionCincoDisponible : false);
-  readonly estado = signal('activo'); readonly fechaDesde = signal(this.esEdicionVersionDos ? '2026-07-05' : '2026-08-03');
+  readonly estado = signal('activo'); readonly fechaDesde = signal(this.esEdicionVersionDos ? '2026-07-05' : '2026-08-20');
   readonly puedeGrabar = computed(() => Boolean(
     this.procesoSeleccionado()
     && this.codigo().trim()
@@ -256,6 +257,7 @@ export class CatalogoVersionesRegistroComponent {
     // Cada proceso tiene su propia secuencia de versiones: el proceso existente conserva el 5;
     // para los demás procesos, el primer registro comienza en 1.
     this.codigo.set(proceso.codigo === 'M02.1.9.1' ? '5' : '1');
+    this.fechaDesde.set(proceso.codigo === 'M02.1.9.2' ? '2026-08-24' : '2026-08-20');
     this.reiniciarVerificacionVersionesVinculadas();
     this.selectorProcesoAbierto.set(false);
   }
@@ -314,15 +316,19 @@ export class CatalogoVersionesRegistroComponent {
   confirmarGrabacion(): void {
     this.confirmacionGrabacionAbierta.set(false);
     const esVersionCinco = this.codigo() === '5';
+    const esVersionSeis = this.procesoSeleccionado()?.codigo === 'M02.1.9.2' && this.codigo() === '1';
     void this.router.navigateByUrl('/procesos/catalogo-versiones', {
       state: {
         versionRegistrada: true,
         versionActualizada: this.esEdicion || this.versionCincoActualizada,
         versionDosInactiva: this.esEdicionVersionDos && this.estado() === 'inactivo',
         versionCincoOficial: esVersionCinco ? this.oficial() : this.versionCincoOficial,
-        versionCincoDisponible: esVersionCinco ? this.disponible() : this.versionCincoDisponible,
+        // Cuando la versión 6 pasa a Disponible, reemplaza la disponibilidad de la 5.
+        versionCincoDisponible: esVersionCinco ? this.disponible() : (esVersionSeis && this.disponible() ? false : this.versionCincoDisponible),
+        versionSeisDisponible: esVersionSeis ? this.disponible() : this.versionSeisDisponible,
         nuevoProceso: this.procesoSeleccionado()?.codigo === 'M02.1.9.2' || this.nuevoProcesoExistente,
         mostrarSnackbar: true,
+        activeTab: 'records',
       }
     });
   }

@@ -15,7 +15,7 @@ import { USUARIOS_DEMO, UsuarioDemo } from './usuarios-demo';
  */
 
 const CLAVE = 'taller-siaf-rp:datos';
-const VERSION = 1;
+const VERSION = 2;
 
 export interface NotificacionMock extends NotificacionResponse {
   /** Destinatario: un usuario puntual o, si no hay, todos los perfiles con este rol. */
@@ -34,6 +34,7 @@ export interface DatosTaller {
 }
 
 export const TIPO_DOCUMENTO = { id: 'td-srcb', codigo: CODIGO_DOCUMENTO, nombre: NOMBRE_DOCUMENTO };
+export const DOCUMENTO_AUTOGENERADO_CATALOGO = { id: 'td-catalogo-versiones', codigo: 'DGPP', nombre: 'Documento autogenerado' };
 export const ENTIDAD_CREADORA = { id: 'ent-mef', codMef: '0001', siglas: 'MEF', nombre: 'Ministerio de Economía y Finanzas' };
 export const UNIDAD_CREADORA = { id: 'uo-oga', sigla: 'OGA', nombre: 'Oficina General de Administración' };
 
@@ -214,31 +215,21 @@ function crearDatosIniciales(): DatosTaller {
     }
   }
 
-  // Notificaciones: el aprobador tiene una solicitud por aprobar; el creador, una observada y otras ya leídas.
-  const aviso = (s: SolicitudResponse, tipo: string, titulo: string, mensaje: string, leida: boolean, destino: Pick<NotificacionMock, 'paraUsuarioId' | 'paraRolCodigo'>): NotificacionMock => ({
-    id: nuevoId(datos, 'not'),
-    tipo,
-    titulo,
-    mensaje,
-    leida,
-    leidaEn: leida ? s.updatedAt ?? null : null,
-    createdAt: s.updatedAt ?? s.createdAt,
-    documento: { id: s.id, numero: s.numero, catDocumento: TIPO_DOCUMENTO },
-    ...destino,
-  });
+  // La bandeja solo muestra avisos del Catálogo de versiones.
   const porEstado = (estado: string) => datos.solicitudes.filter((s) => s.estado === estado);
-  for (const s of porEstado('VERIFICADO')) {
-    datos.notificaciones.push(aviso(s, 'DOCUMENTO_VERIFICADO', 'Solicitud por aprobar', `La solicitud ${s.numero} fue verificada y espera su aprobación.`, false, { paraRolCodigo: 'APROBADOR' }));
-  }
-  for (const s of porEstado('OBSERVADO')) {
-    datos.notificaciones.push(aviso(s, 'DOCUMENTO_OBSERVADO', 'Solicitud observada', `La solicitud ${s.numero} fue observada: revise el comentario y subsane.`, false, { paraUsuarioId: ana.id }));
-  }
-  for (const s of porEstado('RECHAZADO')) {
-    datos.notificaciones.push(aviso(s, 'DOCUMENTO_RECHAZADO', 'Solicitud rechazada', `La solicitud ${s.numero} fue rechazada.`, true, { paraUsuarioId: ana.id }));
-  }
   const ultimaAprobada = porEstado('APROBADO').at(-1);
   if (ultimaAprobada) {
-    datos.notificaciones.push(aviso(ultimaAprobada, 'DOCUMENTO_APROBADO', 'Solicitud aprobada', `La solicitud ${ultimaAprobada.numero} fue aprobada.`, true, { paraUsuarioId: ana.id }));
+    datos.notificaciones.push({
+      id: nuevoId(datos, 'not'),
+      tipo: 'CATALOGO_VERSIONES_ACEPTADO',
+      titulo: 'Documento autogenerado aceptado',
+      mensaje: 'El documento autogenerado fue aceptado.',
+      leida: false,
+      leidaEn: null,
+      createdAt: ultimaAprobada.updatedAt ?? ultimaAprobada.createdAt,
+      documento: { id: ultimaAprobada.id, numero: 'Documento-autogenerado-DGPP-0012-MEF', catDocumento: DOCUMENTO_AUTOGENERADO_CATALOGO },
+      paraUsuarioId: ana.id,
+    });
   }
 
   return datos;

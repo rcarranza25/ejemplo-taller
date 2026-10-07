@@ -145,7 +145,7 @@ export class AppShellComponent implements OnInit {
   trayMenuOpen = false;
   trayContentOpen = false;
   mobileNavigationOpen = false;
-  selectedTrayItem = 'Borradores';
+  selectedTrayItem = 'Enviados';
   createDocumentOpen = false;
   adminMenuOpen = false;
 

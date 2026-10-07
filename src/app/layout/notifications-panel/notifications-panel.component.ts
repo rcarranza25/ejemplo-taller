@@ -162,6 +162,10 @@ export class NotificationsPanelComponent {
 
   onClickNotification(notif: NotificacionResponse): void {
     this.closed.emit();
+    if (notif.tipo === 'CATALOGO_VERSIONES_ACEPTADO') {
+      void this.router.navigateByUrl('/procesos/catalogo-versiones');
+      return;
+    }
     // En el modelo v2 el campo es `documento`; conservamos compat con
     // `solicitud` por si alguna respuesta vieja sigue en caché.
     const docId = notif.documento?.id ?? notif.solicitud?.id;

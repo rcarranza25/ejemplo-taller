@@ -148,10 +148,6 @@ export class VirtualDeskComponent implements OnInit {
 
   readonly totalBandeja = computed(() => this.solicitudesState.solicitudes().length);
 
-  readonly borradoresCount = computed(() =>
-    this.solicitudesState.solicitudes().filter(s => s.estado === ESTADO.ELABORADO).length
-  );
-
   readonly enviadosCount = computed(() => {
     const role = this.permissionService.currentRole();
     const solicitudes = this.solicitudesState.solicitudes();
@@ -163,21 +159,8 @@ export class VirtualDeskComponent implements OnInit {
     return solicitudes.filter(s => [ESTADO.VERIFICADO, ...ESTADOS_RESPUESTA_APROBADOR].includes(s.estado)).length;
   });
 
-  readonly recibidosCount = computed(() => {
-    const role = this.permissionService.currentRole();
-    const solicitudes = this.solicitudesState.solicitudes();
-    if (role === 'approver') {
-      // Aprobador: lo que llega para su acción
-      return solicitudes.filter(s => s.estado === ESTADO.VERIFICADO).length;
-    }
-    // Creador: respuestas del aprobador (observadas, aprobadas, rechazadas)
-    return solicitudes.filter(s => ESTADOS_RESPUESTA_APROBADOR.includes(s.estado)).length;
-  });
-
   readonly smallCards = computed<DeskCard[]>(() => [
-    { title: 'Recibidos', value: this.recibidosCount(), icon: 'description', tone: 'success' },
     { title: 'Enviados', value: this.enviadosCount(), icon: 'send', tone: 'accent' },
-    { title: 'Borradores', value: this.borradoresCount(), icon: 'edit_note', tone: 'warning' },
     { title: 'Notificaciones', value: this.notificationsState.unreadCount(), icon: 'notifications', tone: 'neutral' },
   ]);
 

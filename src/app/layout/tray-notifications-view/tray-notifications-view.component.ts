@@ -288,6 +288,10 @@ export class TrayNotificationsViewComponent implements OnInit {
   }
 
   onClick(notif: NotificacionResponse): void {
+    if (notif.tipo === 'CATALOGO_VERSIONES_ACEPTADO') {
+      void this.router.navigateByUrl('/procesos/catalogo-versiones');
+      return;
+    }
     // En el modelo v2 el documento vive en `documento`; fallback a `solicitud` legacy.
     const docId = notif.documento?.id ?? notif.solicitud?.id;
     if (!docId) return;

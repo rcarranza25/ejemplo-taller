@@ -42,7 +42,7 @@ describe('VirtualDeskComponent', () => {
 
   afterEach(() => TestBed.inject(HttpTestingController).verify());
 
-  it('pinta las ocho tarjetas con siaf-desk-card, cada una en su variante y con los contadores de la bandeja', () => {
+  it('pinta las seis tarjetas vigentes con siaf-desk-card y sus contadores', () => {
     const resumen = tarjetas().map((t) => [
       t.querySelector('[data-variante]')?.getAttribute('data-variante'),
       t.querySelector('[data-titulo]')?.textContent?.trim(),
@@ -51,9 +51,7 @@ describe('VirtualDeskComponent', () => {
     expect(resumen).toEqual([
       ['featured', 'Bandeja de Documentos', '04'],
       ['featured', 'Procesos', null],
-      ['counter', 'Recibidos', '01'],
       ['counter', 'Enviados', '02'],
-      ['counter', 'Borradores', '02'],
       ['counter', 'Notificaciones', '02'],
       ['shortcut', 'Consulta y Reportes', null],
       ['shortcut', 'Crear documento', null],

@@ -10,6 +10,7 @@ import type { CuentaBancariaDatos } from '../modules/tesoreria/cuentas-bancarias
 import {
   DatosTaller,
   ENTIDAD_CREADORA,
+  DOCUMENTO_AUTOGENERADO_CATALOGO,
   NotificacionMock,
   TIPO_DOCUMENTO,
   UNIDAD_CREADORA,
@@ -147,6 +148,8 @@ const tiposDocumento: Manejador = () => ok([
 function visibles(datos: DatosTaller, sesion: Sesion): NotificacionMock[] {
   return datos.notificaciones
     .filter((n) => (n.paraUsuarioId ? n.paraUsuarioId === sesion.usuario.id : n.paraRolCodigo === sesion.perfil.rolCodigo))
+    // Oculta avisos heredados de los tipos que ya no forman parte de la bandeja.
+    .filter((n) => n.tipo === 'CATALOGO_VERSIONES_ACEPTADO')
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
@@ -173,24 +176,18 @@ const marcarLeidaDocumento: Manejador = ({ datos, sesion, params }) => {
 };
 
 function notificar(datos: DatosTaller, s: SolicitudResponse, estado: EstadoDocumento, comentario: string | null): void {
-  const textos: Partial<Record<EstadoDocumento, { titulo: string; mensaje: string }>> = {
-    VERIFICADO: { titulo: 'Solicitud por aprobar', mensaje: `La solicitud ${s.numero} fue verificada y espera su aprobación.` },
-    APROBADO: { titulo: 'Solicitud aprobada', mensaje: `La solicitud ${s.numero} fue aprobada.` },
-    OBSERVADO: { titulo: 'Solicitud observada', mensaje: `La solicitud ${s.numero} fue observada: ${comentario ?? 'revise el comentario'}.` },
-    RECHAZADO: { titulo: 'Solicitud rechazada', mensaje: `La solicitud ${s.numero} fue rechazada.` },
-  };
-  const texto = textos[estado];
-  if (!texto) return;
-  const destino = estado === 'VERIFICADO' ? { paraRolCodigo: 'APROBADOR' as const } : { paraUsuarioId: s.creador?.id };
+  void comentario;
+  if (estado !== 'APROBADO') return;
   datos.notificaciones.push({
     id: nuevoId(datos, 'not'),
-    tipo: `DOCUMENTO_${estado}`,
-    ...texto,
+    tipo: 'CATALOGO_VERSIONES_ACEPTADO',
+    titulo: 'Documento autogenerado aceptado',
+    mensaje: 'El documento autogenerado fue aceptado.',
     leida: false,
     leidaEn: null,
     createdAt: new Date().toISOString(),
-    documento: { id: s.id, numero: s.numero, catDocumento: TIPO_DOCUMENTO },
-    ...destino,
+    documento: { id: s.id, numero: 'Documento-autogenerado-DGPP-0012-MEF', catDocumento: DOCUMENTO_AUTOGENERADO_CATALOGO },
+    paraUsuarioId: s.creador?.id,
   });
 }
 

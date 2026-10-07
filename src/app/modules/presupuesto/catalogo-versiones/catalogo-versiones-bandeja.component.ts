@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { Router } from '@angular/router';
 
 import { BreadcrumbComponent } from '../../../shared/components/breadcrumb/breadcrumb.component';
+import { DocumentHistoryPanelComponent, DocumentHistorySummary } from '../../../shared/components/document-history-panel/document-history-panel.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
 import { RecordsSearchToolbarComponent } from '../../../shared/components/records-search-toolbar/records-search-toolbar.component';
@@ -15,15 +16,17 @@ import { SnackbarComponent } from '../../../shared/ui/snackbar/snackbar.componen
 import { SideNavComponent } from '../../../shared/ui/side-nav/side-nav.component';
 import { DateTimePickerComponent } from '../../../shared/ui/date-time-picker/date-time-picker.component';
 import { TextFieldComponent } from '../../../shared/ui/text-field/text-field.component';
+import { TooltipDirective } from '../../../shared/ui/tooltip/tooltip.directive';
 import { ColumnVisibilityPanelComponent, ColumnVisibilityPanelSection } from '../../../shared/ui/column-visibility-panel/column-visibility-panel.component';
 import type { DocumentsRecordsColumn } from '../../../shared/types/documents-records.types';
 
 type VersionRow = { id: number; anio: string; proceso: string; codigo: string; nombre: string; editable: boolean; pliego: boolean; vigente: boolean; oficial: boolean; disponible: boolean; estado: string; desde: string; hasta: string; vinculada?: { anio: string; proceso: string; codigo: string; nombre: string; }; };
+type VersionDocumentRow = { id: number; documento: string; numero: string; tipoAccion: string; estado: string; sistema: string; fecha: string; entidad: string; };
 
 @Component({
   selector: 'siaf-catalogo-versiones-bandeja',
   standalone: true,
-  imports: [BreadcrumbComponent, ButtonComponent, ColumnVisibilityPanelComponent, IconComponent, IconDropdownMenuComponent, PageHeaderComponent, PaginationComponent, RecordsSearchToolbarComponent, RecordsTabsComponent, SnackbarComponent, SideNavComponent, StatusTagComponent, TableControlsComponent, DateTimePickerComponent, TextFieldComponent],
+  imports: [BreadcrumbComponent, ButtonComponent, ColumnVisibilityPanelComponent, DocumentHistoryPanelComponent, IconComponent, IconDropdownMenuComponent, PageHeaderComponent, PaginationComponent, RecordsSearchToolbarComponent, RecordsTabsComponent, SnackbarComponent, SideNavComponent, StatusTagComponent, TableControlsComponent, DateTimePickerComponent, TextFieldComponent, TooltipDirective],
   template: `
     <main class="min-h-[calc(100vh-56px)] overflow-x-hidden bg-[var(--sys-color-bg-surfaces-surface-lowest)] text-text">
       <div class="w-full">
@@ -32,10 +35,77 @@ type VersionRow = { id: number; anio: string; proceso: string; codigo: string; n
         <siaf-records-tabs
           ariaLabel="Documentos y registros"
           [tabs]="tabsItems"
-          activeId="records"
+          [activeId]="activeTab()"
+          (activeIdChange)="seleccionarPestana($event)"
         />
 
         <section class="w-full p-siaf-md">
+          @if (activeTab() === 'documents') {
+            <article class="flex w-full min-w-0 flex-col rounded-siaf-md bg-surface">
+              <header class="flex h-14 items-center px-siaf-md pt-siaf-md">
+                <h2 class="m-0 text-base font-bold uppercase tracking-[0.02px] text-text">Documentos existentes</h2>
+              </header>
+
+              <div class="flex min-w-0 flex-col gap-siaf-xs p-siaf-md">
+                <siaf-records-search-toolbar [value]="documentSearch()" placeholder="Buscar" (valueChange)="documentSearch.set($any($event))">
+                  <ng-container actions>
+                    <siaf-button variant="text" icon="layers" [iconOnly]="true" ariaLabel="Capas" />
+                    <siaf-button variant="text" icon="star_border" [iconOnly]="true" ariaLabel="Favoritos" />
+                    <siaf-icon-dropdown-menu icon="more_vert" ariaLabel="Más opciones" [items]="[]" />
+                  </ng-container>
+                </siaf-records-search-toolbar>
+
+                <div class="flex items-center justify-between px-siaf-sm py-siaf-xs">
+                  <input class="size-4 accent-[var(--sys-color-icon-states-enabled)]" type="checkbox" aria-label="Seleccionar documentos" />
+                  <span class="text-xs text-text-muted">1-{{ filteredDocuments().length }} de {{ filteredDocuments().length }}</span>
+                </div>
+
+                <div class="min-w-0 max-w-full overflow-x-auto rounded-siaf-sm" aria-label="Grilla de documentos">
+                  <table class="w-[1120px] min-w-full border-collapse text-left text-sm">
+                    <thead class="bg-surface-high text-[10px] font-bold uppercase text-text">
+                      <tr class="h-10 border-b border-[var(--sys-color-divider-default)]">
+                        <th class="w-12 px-siaf-sm"><span class="sr-only">Seleccionar</span></th>
+                        <th class="w-[230px] px-siaf-md">Documento</th>
+                        <th class="w-[90px] px-siaf-md">Número</th>
+                        <th class="w-[130px] px-siaf-md">Tipo de acción</th>
+                        <th class="w-[110px] px-siaf-md">Estado</th>
+                        <th class="w-[130px] px-siaf-md">Sistema</th>
+                        <th class="w-[140px] px-siaf-md">Fecha de registro</th>
+                        <th class="w-[250px] px-siaf-md">Entidad</th>
+                        <th class="w-12 px-siaf-sm"><span class="sr-only">Historial</span></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (row of filteredDocuments(); track row.id) {
+                        <tr class="h-[58px] border-b border-[var(--sys-color-divider-default)] hover:bg-[var(--sys-color-bg-states-light-hover)]">
+                          <td class="px-siaf-sm"><input class="size-4 accent-[var(--sys-color-icon-states-enabled)]" type="checkbox" [attr.aria-label]="'Seleccionar documento ' + row.numero" /></td>
+                          <td class="px-siaf-md">{{ row.documento }}</td>
+                          <td class="px-siaf-md">{{ row.numero }}</td>
+                          <td class="px-siaf-md">{{ row.tipoAccion }}</td>
+                          <td class="px-siaf-md"><span class="rounded-siaf-sm bg-[#2d877f] px-2 py-1 text-xs text-white">{{ row.estado }}</span></td>
+                          <td class="px-siaf-md">{{ row.sistema }}</td>
+                          <td class="px-siaf-md">{{ row.fecha }}</td>
+                          <td class="whitespace-normal px-siaf-md leading-[normal]">{{ row.entidad }}</td>
+                          <td class="px-siaf-sm text-center">
+                            <button
+                              class="inline-flex size-9 items-center justify-center rounded-siaf-sm text-text hover:bg-surface-muted"
+                              type="button"
+                              aria-label="Historial de documento"
+                              siafTooltip="Historial de documento"
+                              tooltipMode="always"
+                              (click)="abrirHistorialDocumento(row)"
+                            ><siaf-icon name="history" [size]="20" /></button>
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+
+                <siaf-pagination position="Bottom" [rowPage]="true" [page]="1" [pageSize]="25" [totalItems]="filteredDocuments().length" [totalPages]="1" />
+              </div>
+            </article>
+          } @else {
           <article class="flex w-full min-w-0 flex-col rounded-siaf-md bg-surface">
             <header class="flex h-14 items-center justify-between gap-siaf-md px-siaf-md pt-siaf-md">
               <h2 class="m-0 text-base font-bold uppercase tracking-[0.02px] text-text">Versiones</h2>
@@ -67,7 +137,7 @@ type VersionRow = { id: number; anio: string; proceso: string; codigo: string; n
                       @if (columnasExtendidas()) { <th colspan="4" class="border-r border-[var(--sys-color-divider-strong)] px-siaf-md text-center">Versión vinculada</th> }
                       <th rowspan="2" class="w-[120px] px-siaf-md text-center">Estado</th><th rowspan="2" class="w-[120px] px-siaf-md text-center">Fecha desde</th><th rowspan="2" class="w-[120px] px-siaf-md text-center">Fecha hasta</th>
                     </tr>
-                    <tr class="h-10 border-b border-[var(--sys-color-divider-default)]"><th class="w-[110px] border-l border-[var(--sys-color-divider-strong)] px-siaf-md text-center">Editable</th><th class="w-[110px] px-siaf-md text-center">Pliego</th><th class="w-[110px] px-siaf-md text-center">Vigente</th><th class="w-[110px] px-siaf-md text-center">Es oficial</th><th class="w-[110px] border-r border-[var(--sys-color-divider-strong)] px-siaf-md text-center">Disponible</th>@if (columnasExtendidas()) { <th class="w-[95px] px-siaf-md text-center">Año</th><th class="w-[230px] px-siaf-md text-center">Proceso</th><th class="w-[95px] px-siaf-md text-center">Código</th><th class="w-[220px] border-r border-[var(--sys-color-divider-strong)] px-siaf-md text-center">Nombre</th> }</tr>
+                    <tr class="h-10 border-b border-[var(--sys-color-divider-default)]"><th class="w-[110px] border-l border-[var(--sys-color-divider-strong)] px-siaf-md text-center">Editable</th><th class="w-[110px] px-siaf-md text-center">Pliego</th><th class="w-[110px] px-siaf-md text-center">Vigente</th><th class="w-[110px] px-siaf-md text-center">Es definitivo</th><th class="w-[110px] border-r border-[var(--sys-color-divider-strong)] px-siaf-md text-center">Disponible</th>@if (columnasExtendidas()) { <th class="w-[95px] px-siaf-md text-center">Año</th><th class="w-[230px] px-siaf-md text-center">Proceso</th><th class="w-[95px] px-siaf-md text-center">Código</th><th class="w-[220px] border-r border-[var(--sys-color-divider-strong)] px-siaf-md text-center">Nombre</th> }</tr>
                   </thead>
                   <tbody>
                     @for (row of filteredRows(); track row.id) {
@@ -86,6 +156,7 @@ type VersionRow = { id: number; anio: string; proceso: string; codigo: string; n
               <siaf-pagination position="Bottom" [rowPage]="true" [page]="1" [pageSize]="10" [totalItems]="filteredRows().length" [totalPages]="1" />
             </div>
           </article>
+          }
         </section>
       </div>
       <siaf-side-nav
@@ -117,7 +188,7 @@ type VersionRow = { id: number; anio: string; proceso: string; codigo: string; n
             <siaf-input type="select" label="Editable" [autoSuccess]="false" [options]="opcionesCondicion" [value]="editableFiltro()" (valueChange)="editableFiltro.set($any($event))" />
             <siaf-input type="select" label="Pliego" [autoSuccess]="false" [options]="opcionesCondicion" [value]="pliegoFiltro()" (valueChange)="pliegoFiltro.set($any($event))" />
             <siaf-input type="select" label="Vigente" [autoSuccess]="false" [options]="opcionesCondicion" [value]="vigenteFiltro()" (valueChange)="vigenteFiltro.set($any($event))" />
-            <siaf-input type="select" label="Es oficial" [autoSuccess]="false" [options]="opcionesCondicion" [value]="oficialFiltro()" (valueChange)="oficialFiltro.set($any($event))" />
+            <siaf-input type="select" label="Es definitivo" [autoSuccess]="false" [options]="opcionesCondicion" [value]="oficialFiltro()" (valueChange)="oficialFiltro.set($any($event))" />
             <siaf-input type="select" label="Disponible" [autoSuccess]="false" [options]="opcionesCondicion" [value]="disponibleFiltro()" (valueChange)="disponibleFiltro.set($any($event))" />
           </section>
         </div>
@@ -132,6 +203,11 @@ type VersionRow = { id: number; anio: string; proceso: string; codigo: string; n
         (applied)="aplicarColumnas()"
         (toggleAll)="seleccionarTodasColumnas($event)"
         (toggleColumn)="alternarColumna($event.key, $event.event)"
+      />
+      <siaf-document-history-panel
+        [open]="documentHistoryOpen()"
+        [summary]="documentHistorySummary()"
+        (closed)="documentHistoryOpen.set(false)"
       />
       <div class="fixed bottom-siaf-lg left-1/2 z-50 w-[calc(100%-32px)] max-w-[430px] -translate-x-1/2">
         <siaf-snackbar
@@ -169,8 +245,12 @@ export class CatalogoVersionesBandejaComponent {
   // La bandeja inicia mostrando solo las versiones activas. Al aplicar «Todos»
   // desde el filtro, el valor vacío desactiva esta restricción y expone también
   // las versiones inactivas, incluida la versión borrador recién editada.
-  readonly search = signal(''); readonly versionDosInactiva = signal(Boolean(history.state?.['versionDosInactiva'])); readonly estado = signal('Activo'); readonly anio = signal(''); readonly added = signal(Boolean(history.state?.['versionRegistrada'])); readonly actualizada = signal(Boolean(history.state?.['versionActualizada'])); readonly versionCincoOficial = signal(Boolean(history.state?.['versionCincoOficial'])); readonly versionCincoDisponible = signal(Boolean(history.state?.['versionCincoDisponible'])); readonly nuevoProceso = signal(Boolean(history.state?.['nuevoProceso'])); readonly snackbarVisible = signal(Boolean(history.state?.['mostrarSnackbar'])); readonly selectedIds = signal<Set<number>>(new Set());
+  readonly search = signal(''); readonly versionDosInactiva = signal(Boolean(history.state?.['versionDosInactiva'])); readonly estado = signal('Activo'); readonly anio = signal(''); readonly added = signal(Boolean(history.state?.['versionRegistrada'])); readonly actualizada = signal(Boolean(history.state?.['versionActualizada'])); readonly versionCincoOficial = signal(Boolean(history.state?.['versionCincoOficial'])); readonly versionCincoDisponible = signal(Boolean(history.state?.['versionCincoDisponible'])); readonly versionSeisDisponible = signal(Boolean(history.state?.['versionSeisDisponible'])); readonly nuevoProceso = signal(Boolean(history.state?.['nuevoProceso'])); readonly snackbarVisible = signal(Boolean(history.state?.['mostrarSnackbar'])); readonly selectedIds = signal<Set<number>>(new Set());
   readonly filtrosPanelAbierto = signal(false);
+  readonly activeTab = signal<'documents' | 'records'>(history.state?.['activeTab'] === 'records' ? 'records' : 'documents');
+  readonly documentSearch = signal('');
+  readonly documentHistoryOpen = signal(false);
+  readonly documentHistorySummary = signal<DocumentHistorySummary>({ solicitudId: '', document: '', number: '', actionType: '' });
   readonly columnasPanelAbierto = signal(false);
   readonly columnasExtendidas = signal(false);
   readonly columnasBorrador = signal<Set<string>>(new Set(['anio', 'proceso', 'codigo', 'nombre', 'editable', 'pliego', 'vigente', 'oficial', 'disponible', 'estado', 'desde', 'hasta']));
@@ -183,7 +263,7 @@ export class CatalogoVersionesBandejaComponent {
   readonly optionsMenu = [{ label: 'Configurar columnas', value: 'columns' }];
   readonly seccionesColumnas: ColumnVisibilityPanelSection[] = [
     { label: 'Campos generales', locked: true, columns: this.columnas(['anio', 'Año'], ['proceso', 'Proceso'], ['codigo', 'Código'], ['nombre', 'Nombre']) },
-    { label: 'Condiciones de versión', columns: this.columnas(['editable', 'Editable'], ['pliego', 'Pliego'], ['vigente', 'Vigente'], ['oficial', 'Es oficial'], ['disponible', 'Disponible']) },
+    { label: 'Condiciones de versión', columns: this.columnas(['editable', 'Editable'], ['pliego', 'Pliego'], ['vigente', 'Vigente'], ['oficial', 'Es definitivo'], ['disponible', 'Disponible']) },
     { label: 'Versión vinculada', columns: this.columnas(['vinculadaAnio', 'Año'], ['vinculadaProceso', 'Proceso'], ['vinculadaCodigo', 'Código'], ['vinculadaNombre', 'Nombre']) },
     { label: 'Vigencia de versión', columns: this.columnas(['estado', 'Estado'], ['desde', 'Fecha desde'], ['hasta', 'Fecha hasta']) }
   ];
@@ -199,8 +279,18 @@ export class CatalogoVersionesBandejaComponent {
     { id: 3, anio: '2026', proceso: 'M02.1.9.1 Asignación Presupuestaria Multianual', codigo: '3', nombre: 'Versión Conciliada por el Pliego', editable: true, pliego: true, vigente: false, oficial: false, disponible: false, estado: 'Activo', desde: '15/07/2026', hasta: '-' },
     { id: 4, anio: '2026', proceso: 'M02.1.9.1 Asignación Presupuestaria Multianual', codigo: '4', nombre: 'Versión aprobada MEF', editable: false, pliego: false, vigente: false, oficial: false, disponible: false, estado: 'Activo', desde: '20/08/2026', hasta: '-' },
   ];
+  readonly documents: VersionDocumentRow[] = [
+    { id: 4, documento: 'Documento autogenerado', numero: '0004', tipoAccion: 'Creación', estado: 'Aceptado', sistema: 'Presupuesto', fecha: '15/06/2024', entidad: '009 Ministerio de Economía y Finanzas' },
+    { id: 3, documento: 'Documento autogenerado', numero: '0003', tipoAccion: 'Creación', estado: 'Aceptado', sistema: 'Presupuesto', fecha: '20/01/2024', entidad: '009 Ministerio de Economía y Finanzas' },
+    { id: 2, documento: 'Documento autogenerado', numero: '0002', tipoAccion: 'Creación', estado: 'Aceptado', sistema: 'Presupuesto', fecha: '15/12/2023', entidad: '009 Ministerio de Economía y Finanzas' },
+    { id: 1, documento: 'Documento autogenerado', numero: '0001', tipoAccion: 'Creación', estado: 'Aceptado', sistema: 'Presupuesto', fecha: '20/11/2023', entidad: '009 Ministerio de Economía y Finanzas' },
+  ];
+  readonly filteredDocuments = computed(() => {
+    const term = this.documentSearch().trim().toLowerCase();
+    return !term ? this.documents : this.documents.filter(row => Object.values(row).some(value => String(value).toLowerCase().includes(term)));
+  });
   readonly nuevaVersion = computed<VersionRow>(() => ({ id: 5, anio: '2026', proceso: 'M02.1.9.1 Asignación Presupuestaria Multianual', codigo: '5', nombre: 'Versión aprobada PCM', editable: true, pliego: false, vigente: true, oficial: this.versionCincoOficial(), disponible: this.versionCincoDisponible(), estado: 'Activo', desde: '20/08/2026', hasta: '-' }));
-  readonly nuevaVersionProceso = computed<VersionRow>(() => ({ id: 6, anio: '2026', proceso: 'M02.1.9.2 Programación Multianual Pliego - UE', codigo: '1', nombre: 'Versión Programación APM Aprobada', editable: true, pliego: true, vigente: false, oficial: false, disponible: false, estado: 'Activo', desde: '24/08/2026', hasta: '-', vinculada: { anio: '2026', proceso: 'M02.1.9.1 Asignación Presupuestaria Multianual', codigo: '5', nombre: 'Versión Aprobada PCM' } }));
+  readonly nuevaVersionProceso = computed<VersionRow>(() => ({ id: 6, anio: '2026', proceso: 'M02.1.9.2 Programación Multianual Pliego - UE', codigo: '1', nombre: 'Versión Programación APM Aprobada', editable: true, pliego: false, vigente: true, oficial: false, disponible: this.versionSeisDisponible(), estado: 'Activo', desde: '24/08/2026', hasta: '-', vinculada: { anio: '2026', proceso: 'M02.1.9.1 Asignación Presupuestaria Multianual', codigo: '5', nombre: 'Versión Aprobada PCM' } }));
   readonly displayedRows = computed(() => {
     const rows = this.rows.slice().reverse().map(row => row.id === 2 && this.versionDosInactiva() ? { ...row, estado: 'Inactivo', hasta: '09/09/2026' } : row);
     return this.added() ? [...(this.nuevoProceso() ? [this.nuevaVersionProceso()] : []), this.nuevaVersion(), ...rows] : rows;
@@ -247,13 +337,26 @@ export class CatalogoVersionesBandejaComponent {
   aplicarColumnas(): void { this.snackbarVisible.set(false); this.columnasExtendidas.set(this.todasLasColumnas.every(key => this.columnasBorrador().has(key))); this.columnasPanelAbierto.set(false); }
   private columnas(...items: [string, string][]): DocumentsRecordsColumn[] { return items.map(([key, label]) => ({ key, label, visibility: 'visible', group: 'more' })); }
   private readonly todasLasColumnas = ['anio', 'proceso', 'codigo', 'nombre', 'editable', 'pliego', 'vigente', 'oficial', 'disponible', 'vinculadaAnio', 'vinculadaProceso', 'vinculadaCodigo', 'vinculadaNombre', 'estado', 'desde', 'hasta'];
-  crearVersion(): void { void this.router.navigateByUrl('/procesos/catalogo-versiones/nuevo', { state: { versionCincoActualizada: this.actualizada(), versionCincoOficial: this.versionCincoOficial(), versionCincoDisponible: this.versionCincoDisponible() } }); }
+  crearVersion(): void { void this.router.navigateByUrl('/procesos/catalogo-versiones/nuevo', { state: { versionCincoActualizada: this.actualizada(), versionCincoOficial: this.versionCincoOficial(), versionCincoDisponible: this.versionCincoDisponible(), versionSeisDisponible: this.versionSeisDisponible() } }); }
   puedeEditarSeleccion = (): boolean => this.selectedIds().size === 1 && (this.selectedIds().has(5) || this.selectedIds().has(2));
   editarVersion(): void {
     if (!this.puedeEditarSeleccion()) return;
     const codigoEdicion = this.selectedIds().has(2) ? '2' : '5';
-    void this.router.navigateByUrl('/procesos/catalogo-versiones/nuevo', { state: { edicionVersion: true, codigoEdicion, versionCincoActualizada: this.actualizada(), versionCincoOficial: this.versionCincoOficial(), versionCincoDisponible: this.versionCincoDisponible(), nuevoProcesoExistente: this.nuevoProceso() } });
+    void this.router.navigateByUrl('/procesos/catalogo-versiones/nuevo', { state: { edicionVersion: true, codigoEdicion, versionCincoActualizada: this.actualizada(), versionCincoOficial: this.versionCincoOficial(), versionCincoDisponible: this.versionCincoDisponible(), versionSeisDisponible: this.versionSeisDisponible(), nuevoProcesoExistente: this.nuevoProceso() } });
   }
   toggleRow(id: number): void { const next = new Set(this.selectedIds()); next.has(id) ? next.delete(id) : next.add(id); this.selectedIds.set(next); }
   toggleAll(checked: boolean): void { const next = new Set(this.selectedIds()); this.filteredRows().forEach(r => checked ? next.add(r.id) : next.delete(r.id)); this.selectedIds.set(next); }
+  seleccionarPestana(tab: string): void {
+    this.activeTab.set(tab === 'records' ? 'records' : 'documents');
+    this.documentHistoryOpen.set(false);
+  }
+  abrirHistorialDocumento(row: VersionDocumentRow): void {
+    this.documentHistorySummary.set({
+      solicitudId: '', document: row.documento, number: row.numero, actionType: row.tipoAccion,
+      staticRows: row.numero === '0002'
+        ? [{ usuario: 'JUAN DOE PEREZ', rol: 'DGPP', fecha: '19/02/2026', hora: '08:00:59', estado: 'ACEPTADO', comentario: '' }]
+        : [],
+    });
+    this.documentHistoryOpen.set(true);
+  }
 }

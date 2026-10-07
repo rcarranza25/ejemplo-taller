@@ -97,7 +97,7 @@ export class TrayMenuComponent {
   private readonly solicitudesState = inject(SolicitudesStateService);
   private readonly permissionService = inject(PermissionService);
 
-  @Input() selectedItem = 'Borradores';
+  @Input() selectedItem = 'Enviados';
   @Output() selected = new EventEmitter<string>();
 
   private fmt(n: number): string {
@@ -109,21 +109,14 @@ export class TrayMenuComponent {
     const unread = this.notifications.unreadCount();
     const isAprobador = role === 'approver';
 
-    const recibidos = isAprobador
-      ? this.solicitudesState.aprobadorRecibidosCount()
-      : this.solicitudesState.creadorRecibidosCount();
-
     const enviados = isAprobador
       ? this.solicitudesState.aprobadorEnviadosCount()
       : this.solicitudesState.creadorEnviadosCount();
 
-    const borradores = isAprobador ? 0 : this.solicitudesState.creadorBorradoresCount();
     const papelera   = isAprobador ? 0 : this.solicitudesState.creadorPapeleraCount();
 
     const base: TrayItem[] = [
-      { label: 'Recibidos',      icon: 'description',   count: this.fmt(recibidos) },
       { label: 'Enviados',       icon: 'send',          count: this.fmt(enviados) },
-      { label: 'Borradores',     icon: 'edit_note',     count: this.fmt(borradores) },
       { label: 'Notificaciones', icon: 'notifications', count: this.fmt(unread) },
       { label: 'Papelera',       icon: 'delete',        count: this.fmt(papelera) },
     ];
