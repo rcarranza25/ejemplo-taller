@@ -59,7 +59,7 @@ export function formatearContador(valor: number | null): string {
   imports: [IconComponent, NgClass, NgTemplateOutlet],
   host: { class: 'block' },
   template: `
-    @if (interactive) {
+    @if (interactive && !disabled) {
       <button
         class="cursor-pointer transition hover:bg-[var(--sys-color-bg-states-light-hover)] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-border-states-focus)] active:bg-[var(--sys-color-bg-states-light-selected)]"
         type="button"
@@ -70,7 +70,7 @@ export function formatearContador(valor: number | null): string {
         <ng-container [ngTemplateOutlet]="contenido" />
       </button>
     } @else {
-      <article [ngClass]="claseTarjeta" [attr.aria-label]="title || null" [attr.data-variante]="variant">
+      <article [ngClass]="claseTarjeta" [attr.aria-label]="title || null" [attr.aria-disabled]="disabled ? 'true' : null" [attr.data-variante]="variant">
         <ng-container [ngTemplateOutlet]="contenido" />
       </article>
     }
@@ -133,10 +133,12 @@ export class DeskCardComponent {
   @Input() value: number | null = null;
   /** Toda la tarjeta pasa a ser un `button` que emite `activated`. */
   @Input() interactive = false;
+  /** Mantiene la tarjeta visible, pero con apariencia y semántica de acceso inactivo. */
+  @Input() disabled = false;
   @Output() activated = new EventEmitter<void>();
 
   get claseTarjeta(): string {
-    const base = 'flex h-full w-full items-center rounded-siaf-md bg-surface text-left text-[var(--sys-color-text-brand-secondary)]';
+    const base = `flex h-full w-full items-center rounded-siaf-md bg-surface text-left ${this.disabled ? 'opacity-50 grayscale text-[var(--sys-color-text-neutral-disabled)]' : 'text-[var(--sys-color-text-brand-secondary)]'}`;
     switch (this.variant) {
       case 'featured':
         return `${base} min-h-[204px] gap-siaf-lg px-siaf-xl py-12`;

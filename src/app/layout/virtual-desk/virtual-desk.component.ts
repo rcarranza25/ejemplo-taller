@@ -120,7 +120,7 @@ type DeskCard = {
 
             <div class="grid gap-siaf-md">
               @for (card of wideCards; track card.title) {
-                <siaf-desk-card variant="shortcut" [title]="card.title" [icon]="card.icon" [tone]="card.tone" />
+                <siaf-desk-card variant="shortcut" [title]="card.title" [icon]="card.icon" [tone]="card.tone" [disabled]="card.title === 'Crear documento'" />
               }
             </div>
           </div>

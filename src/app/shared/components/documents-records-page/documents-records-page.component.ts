@@ -185,10 +185,9 @@ type DocumentsRecordsRoleMode = 'creator' | 'approver' | 'readOnly';
               </div>
 
               <div class="relative shrink-0">
-                @if (effectiveConfig.createDocumentOptions.length) {
-                <siaf-button variant="accent" icon="add" (click)="toggleCreateDocumentPopover()">Crear documento</siaf-button>
+                <siaf-button variant="accent" icon="add" [disabled]="!puedeCrearDocumentos">Crear documento</siaf-button>
 
-                @if (createDocumentPopoverOpen) {
+                @if (puedeCrearDocumentos && createDocumentPopoverOpen) {
                   <button class="fixed inset-0 z-20 cursor-default bg-transparent" type="button" data-capa-cierre tabindex="-1" aria-hidden="true" (mousedown)="$event.preventDefault()" (click)="closeCreateDocumentPopover()"></button>
                   <div class="absolute right-0 top-12 z-30 w-[min(360px,calc(100vw-32px))] rounded-siaf-md shadow-siaf-elevation-1" siafFoco [siafFocoAtrapar]="false" (siafFocoEscape)="closeCreateDocumentPopover()" (siafFocoSalida)="closeCreateDocumentPopover()" (click)="$event.stopPropagation()">
                     <siaf-create-document
@@ -201,7 +200,6 @@ type DocumentsRecordsRoleMode = 'creator' | 'approver' | 'readOnly';
                       (accepted)="onCreateDocumentAccepted($event)"
                     />
                   </div>
-                }
                 }
               </div>
             </header>
@@ -426,6 +424,9 @@ export class DocumentsRecordsPageComponent implements OnChanges {
   /** Igual que `documentsQueryChange`, para la pestaña Registros (`serverRecordsQuery`). */
   @Output() recordsQueryChange = new EventEmitter<DocumentsQuery>();
   @Input() loading = false;
+
+  /** El demo solo permite altas de registros del Catálogo de Versiones. */
+  readonly puedeCrearDocumentos = false;
 
   // Config efectivo con reglas de rol aplicadas automáticamente
   get effectiveConfig(): DocumentsRecordsConfig {
@@ -961,6 +962,7 @@ export class DocumentsRecordsPageComponent implements OnChanges {
   }
 
   toggleCreateDocumentPopover(): void {
+    if (!this.puedeCrearDocumentos) return;
     this.closeToolbarMenus();
     this.createDocumentPopoverOpen = !this.createDocumentPopoverOpen;
   }
@@ -970,6 +972,7 @@ export class DocumentsRecordsPageComponent implements OnChanges {
   }
 
   onCreateDocumentAccepted(selection?: CreateDocumentAccepted): void {
+    if (!this.puedeCrearDocumentos) return;
     this.closeCreateDocumentPopover();
 
     // Buscar la ruta en el config local por el documento seleccionado

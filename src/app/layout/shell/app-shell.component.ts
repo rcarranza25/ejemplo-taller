@@ -14,7 +14,6 @@ import { TrayMenuComponent } from '../tray-menu/tray-menu.component';
 import { NavbarComponent } from '../navbar/navbar.component';
 import { SidebarComponent, SidebarNavigation } from '../sidebar/sidebar.component';
 import { CurrentUserService } from '../../core/auth/current-user.service';
-import { PermissionService } from '../../core/auth/permission.service';
 import { ShellNavigationService } from './shell-navigation.service';
 import { ADMIN_MENU_TREE } from '../../shared/utils/process-tree.util';
 
@@ -124,7 +123,6 @@ export class AppShellComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly router = inject(Router);
   private readonly shellNavigation = inject(ShellNavigationService);
-  private readonly permissionService = inject(PermissionService);
   private readonly catalogosApi = inject(CatalogosApiService);
   readonly currentUser = inject(CurrentUserService);
 
@@ -135,9 +133,13 @@ export class AppShellComponent implements OnInit {
     return letras.toUpperCase();
   });
 
-  // El botón Crear solo está habilitado si el rol puede crear documentos
+  /**
+   * El demo del Catálogo de Versiones registra datos propios; no inicia el
+   * flujo de documentos. Mantener los accesos visibles pero inactivos evita
+   * que cualquier rol abra el panel de creación desde el shell.
+   */
   get puedeCrear(): boolean {
-    return this.permissionService.can('document.create');
+    return false;
   }
 
   activeNavigation: SidebarNavigation = 'Panel';
